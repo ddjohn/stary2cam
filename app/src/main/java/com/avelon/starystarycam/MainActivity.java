@@ -40,9 +40,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private MyCameraDevice cameraDevice = null;
     private SurfaceView surfaceView;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i(TAG, "onCreate()");
+        Log.d(TAG, "onCreate()");
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
@@ -53,21 +54,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         surfaceView = (SurfaceView)findViewById(R.id.camera_preview);
         surfaceView.getHolder().addCallback(this);
 
+        // Picture
+        ImageView mImageView;
+        mImageView = (ImageView)findViewById(R.id.imageView);
+
+        this.requestPermissions(new String[] {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 666);
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener((View.OnClickListener) view -> {
-            Log.e(TAG, "onClick()");
+            Log.i(TAG, "onClick()");
             Snackbar.make(view, "Click!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
-
-            try {
-                cameraDevice.aquireLatestImage();
-            }
-            catch (IOException e) {
-                Log.e(TAG, "exception", e);
-            }
-
-            ImageView mImageView;
-            mImageView = (ImageView)findViewById(R.id.imageView);
-            mImageView.setImageBitmap(BitmapFactory.decodeFile("/data/user/0/com.avelon.starystarycam/files/image.jpg"));
+            cameraDevice.snap(mImageView);
         });
     }
 
@@ -80,7 +77,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+
+        if(id == R.id.action_settings) {
             return true;
         }
 

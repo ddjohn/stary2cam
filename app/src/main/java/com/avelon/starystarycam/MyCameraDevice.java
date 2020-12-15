@@ -1,5 +1,6 @@
 package com.avelon.starystarycam;
 
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -11,6 +12,8 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceView;
+import android.widget.ImageView;
+
 import androidx.annotation.NonNull;
 
 import java.io.File;
@@ -26,6 +29,9 @@ public class MyCameraDevice extends CameraDevice.StateCallback {
     private final File filesDir;
     private SurfaceView surfaceView;
     private ImageReader imageReader;
+    private CameraDevice camera;
+    private static CameraCaptureSession session;
+    private ImageView imageView;
 
     public MyCameraDevice(SurfaceView surfaceView, File filesDir) {
         this.surfaceView = surfaceView;
@@ -34,15 +40,22 @@ public class MyCameraDevice extends CameraDevice.StateCallback {
 
     @Override
     public void onOpened(@NonNull CameraDevice camera) {
-        Log.i(TAG, "onOpened(): " + camera);
-        Log.i(TAG, "" + camera.getId());
+        Log.d(TAG, "onOpened(): " + camera);
+        this.camera = camera;
 
         Log.i(TAG, "Create image reader");
-        imageReader = ImageReader.newInstance(1920, 1088, ImageFormat.JPEG, 2 /* images buffered */);
+        imageReader = ImageReader.newInstance(1920, 1088, ImageFormat.JPEG, 2);
         imageReader.setOnImageAvailableListener(reader -> {
-            Log.e(TAG, "onImageAvailable(): " + reader);
-        }, new Handler());
-        Log.d(TAG, "imageReader created");
+
+            Log.i(TAG, "onImageAvailable(): " + reader);
+            aquireLatestImage();
+
+            imageView.setImageBitmap(BitmapFactory.decodeFile("/data/user/0/com.avelon.starystarycam/files/image.jpg"));
+
+            startCameraSession(session, camera);
+
+        }, new MyHandler("image-available"));
+        Log.i(TAG, "imageReader created");
 
         try {
             List<Surface> surfaces = new ArrayList<Surface>();
@@ -53,16 +66,9 @@ public class MyCameraDevice extends CameraDevice.StateCallback {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
                     Log.e(TAG, "onConfigured(): " + session);
-                    try {
-                        MyImageCapture capture1 = new MyImageCapture(camera, imageReader);
-                        session.setRepeatingRequest(capture1.getRequest(), null, new MyHandler("image"));
 
-                        MyCameraCapture capture2 = new MyCameraCapture(camera, surfaceView);
-                        session.setRepeatingRequest(capture2.getRequest(), null, new MyHandler("camera"));
-                    }
-                    catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
+                    MyCameraDevice.session = session;
+                    startCameraSession(session, camera);
                 }
 
                 @Override
@@ -78,28 +84,28 @@ public class MyCameraDevice extends CameraDevice.StateCallback {
 
     @Override
     public void onDisconnected(@NonNull CameraDevice camera) {
-        Log.e(TAG, "onDisconnected(): " + camera);
+        Log.i(TAG, "onDisconnected(): " + camera);
     }
 
     @Override
     public void onError(@NonNull CameraDevice camera, int error) {
-        Log.e(TAG, "onError(): " + camera);
+        Log.i(TAG, "onError(): " + camera);
     }
 
-    public void aquireLatestImage() throws IOException {
-        Log.e(TAG, "aquireLatestImage()");
+    public void aquireLatestImage() {
+        Log.d(TAG, "aquireLatestImage()");
+
         Image img = imageReader.acquireLatestImage();
         if (img != null) {
             processImage(img);
-            img.close();
         }
     }
 
-    private void processImage(Image image) throws IOException {
-        Log.e(TAG, "processImage()");
+    private void processImage(Image image) {
+        Log.d(TAG, "processImage()");
 
         File file = new File(filesDir, "image.jpg");
-        Log.e(TAG, "file: " + file.getAbsolutePath());
+        Log.i(TAG, "file: " + file.getAbsolutePath());
 
         if(image.getFormat() != ImageFormat.JPEG) {
             return;
@@ -114,8 +120,38 @@ public class MyCameraDevice extends CameraDevice.StateCallback {
             output.write(bytes);
             output.close();
         }
+        catch(IOException e) {
+            Log.e(TAG, "exception", e);
+        }
         finally {
             image.close();
+        }
+    }
+
+    public void snap(ImageView mImageView) {
+        Log.d(TAG, "snap()");
+        this.imageView = mImageView;
+        
+        startImageSession();
+    }
+
+    private void startImageSession() {
+        try {
+            MyImageCapture capture = new MyImageCapture(camera, imageReader);
+            session.setRepeatingRequest(capture.getRequest(), null, new MyHandler("image"));
+        }
+        catch (CameraAccessException e) {
+            Log.e(TAG, "exception", e);
+        }
+    }
+
+    private void startCameraSession(@NonNull CameraCaptureSession session, @NonNull CameraDevice camera) {
+        try {
+            MyCameraCapture capture = new MyCameraCapture(camera, surfaceView);
+            session.setRepeatingRequest(capture.getRequest(), null, new MyHandler("camera"));
+        }
+        catch (CameraAccessException e) {
+            Log.e(TAG, "exception", e);
         }
     }
 }

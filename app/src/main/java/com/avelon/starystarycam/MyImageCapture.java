@@ -11,9 +11,9 @@ public class MyImageCapture {
     private CaptureRequest request;
 
     public MyImageCapture(CameraDevice cameraDevice, ImageReader imageReader) throws CameraAccessException {
-        CaptureRequest.Builder builder = cameraDevice.createCaptureRequest (CameraDevice.TEMPLATE_VIDEO_SNAPSHOT);
-        builder.set (CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        builder.set (CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
+        CaptureRequest.Builder builder = cameraDevice.createCaptureRequest (CameraDevice.TEMPLATE_PREVIEW);
+        builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
+        builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
         builder.addTarget(imageReader.getSurface ());
         request = builder.build ();
     }
